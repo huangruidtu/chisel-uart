@@ -1,0 +1,1 @@
+["sbt.Task[scala.collection.immutable.Map[java.lang.String, scala.collection.Seq[scala.Tuple2[java.nio.file.Path, sbt.nio.FileStamp]]]]",{"2.11.7":{"hashes":[["/home/patmos/Workstation/chisel-uart/src/main/scala/uart/Uart.scala","f1b8cbf27273e20184fece8fd9845fac3489b965"]],"lastModifiedTimes":[]}}]
