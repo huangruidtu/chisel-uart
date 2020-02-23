@@ -1,0 +1,92 @@
+|uart_top
+clock => UartMain:u.clock
+clock => int_res.CLK
+clock => res_reg2.CLK
+clock => res_reg1.CLK
+clock => res_cnt[0].CLK
+clock => res_cnt[1].CLK
+clock => res_cnt[2].CLK
+led << UartMain:u.io_led
+rxd => UartMain:u.io_rxd
+txd << UartMain:u.io_txd
+
+
+|uart_top|UartMain:u
+clock => Hello_clock.IN1
+reset => Hello_reset.IN1
+io_rxd => ~NO_FANOUT~
+io_txd <= Hello:Hello.io_txd
+io_led <= Hello:Hello.io_led
+
+
+|uart_top|UartMain:u|Hello:Hello
+clock => blkReg.CLK
+clock => cntReg[0].CLK
+clock => cntReg[1].CLK
+clock => cntReg[2].CLK
+clock => cntReg[3].CLK
+clock => cntReg[4].CLK
+clock => cntReg[5].CLK
+clock => cntReg[6].CLK
+clock => cntReg[7].CLK
+clock => cntReg[8].CLK
+clock => cntReg[9].CLK
+clock => cntReg[10].CLK
+clock => cntReg[11].CLK
+clock => cntReg[12].CLK
+clock => cntReg[13].CLK
+clock => cntReg[14].CLK
+clock => cntReg[15].CLK
+clock => cntReg[16].CLK
+clock => cntReg[17].CLK
+clock => cntReg[18].CLK
+clock => cntReg[19].CLK
+clock => cntReg[20].CLK
+clock => cntReg[21].CLK
+clock => cntReg[22].CLK
+clock => cntReg[23].CLK
+clock => cntReg[24].CLK
+clock => cntReg[25].CLK
+clock => cntReg[26].CLK
+clock => cntReg[27].CLK
+clock => cntReg[28].CLK
+clock => cntReg[29].CLK
+clock => cntReg[30].CLK
+clock => cntReg[31].CLK
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => cntReg.OUTPUTSELECT
+reset => blkReg.OUTPUTSELECT
+io_led <= blkReg.DB_MAX_OUTPUT_PORT_TYPE
+io_txd <= value.DB_MAX_OUTPUT_PORT_TYPE
+
+

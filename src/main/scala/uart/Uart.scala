@@ -9,20 +9,24 @@ package uart
 import chisel3._
 import chisel3.util._
 
-class UartIO extends DecoupledIO(UInt(8.W)) {
-  override def cloneType: this.type = new UartIO().asInstanceOf[this.type]
+/**
+ * This is a minimal data channel with a ready/valid handshake.
+ */
+class Channel extends Bundle {
+  val data = Input(Bits(8.W))
+  val ready = Output(Bool())
+  val valid = Input(Bool())
 }
 
-
 /**
-  * Transmit part of the UART.
-  * A minimal version without any additional buffering.
-  * Use a ready/valid handshaking.
-  */
+ * Transmit part of the UART.
+ * A minimal version without any additional buffering.
+ * Use an AXI like valid/ready handshake.
+ */
 class Tx(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val txd = Output(UInt(1.W))
-    val channel = Flipped(new UartIO())
+    val txd = Output(Bits(1.W))
+    val channel = new Channel()
   })
 
   val BIT_CNT = ((frequency + baudRate / 2) / baudRate - 1).asUInt()
@@ -43,7 +47,7 @@ class Tx(frequency: Int, baudRate: Int) extends Module {
       bitsReg := bitsReg - 1.U
     }.otherwise {
       when(io.channel.valid) {
-        shiftReg := Cat(Cat(3.U, io.channel.bits), 0.U) // two stop bits, data, one start bit
+        shiftReg := Cat(Cat(3.U, io.channel.data), 0.U) // two stop bits, data, one start bit
         bitsReg := 11.U
       }.otherwise {
         shiftReg := 0x7ff.U
@@ -56,26 +60,26 @@ class Tx(frequency: Int, baudRate: Int) extends Module {
 }
 
 /**
-  * Receive part of the UART.
-  * A minimal version without any additional buffering.
-  * Use a ready/valid handshaking.
-  *
-  * The following code is inspired by Tommy's receive code at:
-  * https://github.com/tommythorn/yarvi
-  */
+ * Receive part of the UART.
+ * A minimal version without any additional buffering.
+ * Use an AXI like valid/ready handshake.
+ *
+ * The following code is inspired by Tommy's receive code at:
+ * https://github.com/tommythorn/yarvi
+ */
 class Rx(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val rxd = Input(UInt(1.W))
-    val channel = new UartIO()
+    val rxd = Input(Bits(1.W))
+    val channel = Flipped(new Channel())
   })
 
   val BIT_CNT = ((frequency + baudRate / 2) / baudRate - 1).U
   val START_CNT = ((3 * frequency / 2 + baudRate / 2) / baudRate - 1).U
 
-  // Sync in the asynchronous RX data, reset to 1 to not start reading after a reset
-  val rxReg = RegNext(RegNext(io.rxd, 1.U), 1.U)
+  // Sync in the asynchronous RX data
+  val rxReg = RegNext(RegNext(io.rxd))
 
-  val shiftReg = RegInit(0.U(8.W))
+  val shiftReg = RegInit('A'.U(8.W))
   val cntReg = RegInit(0.U(20.W))
   val bitsReg = RegInit(0.U(4.W))
   val valReg = RegInit(false.B)
@@ -99,17 +103,17 @@ class Rx(frequency: Int, baudRate: Int) extends Module {
     valReg := false.B
   }
 
-  io.channel.bits := shiftReg
+  io.channel.data := shiftReg
   io.channel.valid := valReg
 }
 
 /**
-  * A single byte buffer with a ready/valid interface
-  */
+ * A single byte buffer with a ready/valid interface
+ */
 class Buffer extends Module {
   val io = IO(new Bundle {
-    val in = Flipped(new UartIO())
-    val out = new UartIO()
+    val in = new Channel()
+    val out = Flipped(new Channel())
   })
 
   val empty :: full :: Nil = Enum(2)
@@ -121,7 +125,7 @@ class Buffer extends Module {
 
   when(stateReg === empty) {
     when(io.in.valid) {
-      dataReg := io.in.bits
+      dataReg := io.in.data
       stateReg := full
     }
   }.otherwise { // full
@@ -129,16 +133,16 @@ class Buffer extends Module {
       stateReg := empty
     }
   }
-  io.out.bits := dataReg
+  io.out.data := dataReg
 }
 
 /**
-  * A transmitter with a single buffer.
-  */
+ * A transmitter with a single buffer.
+ */
 class BufferedTx(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val txd = Output(UInt(1.W))
-    val channel = Flipped(new UartIO())
+    val txd = Output(Bits(1.W))
+    val channel = new Channel()
   })
   val tx = Module(new Tx(frequency, baudRate))
   val buf = Module(new Buffer())
@@ -149,35 +153,49 @@ class BufferedTx(frequency: Int, baudRate: Int) extends Module {
 }
 
 /**
-  * Send a string.
-  */
+ * Send a string.
+ */
 class Sender(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val txd = Output(UInt(1.W))
+    val value = Input(Bits(1.W))
+    val txd = Output(Bits(1.W))
   })
 
-  val tx = Module(new BufferedTx(frequency, baudRate))
+  //val tx = Module(new BufferedTx(frequency, baudRate))
+  
+  
+  //io.txd := tx.io.txd
+/*
+  val msg = Wire(UInt())
 
-  io.txd := tx.io.txd
-
-  val msg = "Hello World!"
+  io.txd := msg
+  msg := 1.U
+/*  when(io.value === 1.U){
+//	val msg = "1"
+   }
+*/
+  when(io.value === 0.U){
+	msg := 0.U
+  }	
+  io.txd := msg
+  /*
   val text = VecInit(msg.map(_.U))
   val len = msg.length.U
 
   val cntReg = RegInit(0.U(8.W))
 
-  tx.io.channel.bits := text(cntReg)
+  tx.io.channel.data := text(cntReg)
   tx.io.channel.valid := cntReg =/= len
 
   when(tx.io.channel.ready && cntReg =/= len) {
     cntReg := cntReg + 1.U
-  }
+  }*/*/
 }
 
 class Echo(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val txd = Output(UInt(1.W))
-    val rxd = Input(UInt(1.W))
+    val txd = Output(Bits(1.W))
+    val rxd = Input(Bits(1.W))
   })
   // io.txd := RegNext(io.rxd)
   val tx = Module(new BufferedTx(frequency, baudRate))
@@ -187,25 +205,99 @@ class Echo(frequency: Int, baudRate: Int) extends Module {
   tx.io.channel <> rx.io.channel
 }
 
+/**
+ * The blinking LED component.
+ */
+
+class Hello extends Module {
+  val io = IO(new Bundle {
+    val led = Output(UInt(1.W))
+    val txd = Output(UInt(1.W))
+  })
+  val CNT_MAX = (50000000 / 2 - 1).U;
+  //val send = Module(new Sender(50000000, 115200))
+  val tx = Module(new BufferedTx(50000000, 115200))
+  //io.value := send.io.value
+  val cntReg = RegInit(0.U(32.W))
+  val blkReg = RegInit(0.U(1.W))
+  //val b = RegInit(0.U(1.W))
+  val value = Wire(UInt())
+  val msg = Wire(UInt())
+  value := 0.U
+  msg := 1.U
+  
+  
+
+
+
+  io.txd := tx.io.txd
+  
+
+  
+  cntReg := cntReg + 1.U
+  when(cntReg === CNT_MAX) {
+    cntReg := 0.U
+    blkReg := ~blkReg
+    //b := ~b
+    value := blkReg
+  }
+
+  when(value === 0.U){
+	msg := 0.U
+  }	
+  io.txd := msg
+
+
+  io.led := blkReg
+////////////////////////////////////////////////////
+/*  val text = VecInit(msg.map(_.U))
+  val len = msg.length.U
+*/
+  val msg1 = "Hello,World"
+  val text = VecInit(msg1.map(_.U))
+  //val len = 1.U
+  val len = msg1.length.U
+
+  val cntReg_send = RegInit(0.U(8.W))
+
+  tx.io.channel.data := text(cntReg_send)
+  tx.io.channel.valid := cntReg =/= len
+
+  when(tx.io.channel.ready && cntReg_send =/= len) {
+    cntReg_send := cntReg_send + 1.U
+  }
+
+}
+
+
 class UartMain(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
-    val rxd = Input(UInt(1.W))
-    val txd = Output(UInt(1.W))
+    val rxd = Input(Bits(1.W))
+    val txd = Output(Bits(1.W))
+    val led = Output(UInt(1.W))
   })
 
   val doSender = true
 
   if (doSender) {
-    val s = Module(new Sender(frequency, baudRate))
-    io.txd := s.io.txd
+    val h = Module(new Hello())
+    //val s = Module(new Sender(50000000,115200))   
+    io.led := h.io.led
+    io.txd := h.io.txd
+    //h.io.value := s.io.value
+    //io.txd := s.io.txd
+
   } else {
     val e = Module(new Echo(frequency, baudRate))
     e.io.rxd := io.rxd
     io.txd := e.io.txd
   }
+    //val h = Module(new Hello())
+    //io.led := h.io.led
 
 }
 
 object UartMain extends App {
   chisel3.Driver.execute(Array("--target-dir", "generated"), () => new UartMain(50000000, 115200))
 }
+

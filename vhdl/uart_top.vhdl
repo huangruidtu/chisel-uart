@@ -11,7 +11,7 @@ entity uart_top is
 port (
     clock : in std_logic;
 --    reset : in std_logic;
--- led : out std_logic;
+ led : out std_logic;
     rxd : in std_logic;
     txd : out std_logic
 );
@@ -23,7 +23,8 @@ component UartMain is
 port (clock : std_logic;
       reset : in std_logic;
       io_rxd : in std_logic;
-      io_txd : out std_logic);
+      io_txd : out std_logic;
+		io_led : out std_logic);
 end component;
 
    signal reset : std_logic;
@@ -53,8 +54,8 @@ begin
 
    reset <= int_res;
 
-    u: UartMain port map(clock, reset, rxd, txd);
-
+    u: UartMain port map(clock, reset, rxd, txd, led);
+	
 --    led <= not rxd;
 --    txd <= rxd;
 
